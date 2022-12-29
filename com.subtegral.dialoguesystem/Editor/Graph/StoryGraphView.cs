@@ -89,7 +89,7 @@ namespace Subtegral.DialogueSystem.Editor
             var field = new BlackboardField {text = localPropertyName, typeText = "string"};
             container.Add(field);
 
-            var propertyValueTextField = new TextField("Value:")
+            var propertyValueTextField = new TextArea("Value:")
             {
                 value = localPropertyValue
             };
@@ -140,7 +140,7 @@ namespace Subtegral.DialogueSystem.Editor
             tempDialogueNode.SetPosition(new Rect(position,
                 DefaultNodeSize)); //To-Do: implement screen center instantiation positioning
 
-            var textField = new TextField("");
+            var textField = new TextArea("");
             textField.RegisterValueChangedCallback(evt =>
             {
                 tempDialogueNode.DialogueText = evt.newValue;
@@ -170,7 +170,7 @@ namespace Subtegral.DialogueSystem.Editor
                 : overriddenPortName;
 
 
-            var textField = new TextField()
+            var textField = new TextArea()
             {
                 name = string.Empty,
                 value = outputPortName
