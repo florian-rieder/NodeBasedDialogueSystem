@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using NodeBasedDialogueSystem.com.DialogueSystem.Runtime;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Subtegral.DialogueSystem.DataContainers;
 
-namespace Subtegral.DialogueSystem.Runtime
+namespace NodeBasedDialogueSystem.Samples.DialogueSystemDemo
 {
     public class DialogueParser : MonoBehaviour
     {
@@ -18,36 +16,27 @@ namespace Subtegral.DialogueSystem.Runtime
 
         private void Start()
         {
-            var narrativeData = dialogue.NodeLinks.First(); //Entrypoint node
-            ProceedToNarrative(narrativeData.TargetNodeGUID);
+            var narrativeData = dialogue.nodeLinks.First(); //Entrypoint node
+            ProceedToNarrative(narrativeData.targetNodeGuid);
         }
 
-        private void ProceedToNarrative(string narrativeDataGUID)
+        private void ProceedToNarrative(string narrativeDataGuid)
         {
-            var text = dialogue.DialogueNodeData.Find(x => x.NodeGUID == narrativeDataGUID).DialogueText;
-            var choices = dialogue.NodeLinks.Where(x => x.BaseNodeGUID == narrativeDataGUID);
+            var text = dialogue.dialogueNodeData.Find(x => x.nodeGuid == narrativeDataGuid).dialogueText;
+            IEnumerable<NodeLinkData> choices = dialogue.nodeLinks.Where(x => x.baseNodeGuid == narrativeDataGuid);
             dialogueText.text = ProcessProperties(text);
-            var buttons = buttonContainer.GetComponentsInChildren<Button>();
-            for (int i = 0; i < buttons.Length; i++)
-            {
-                Destroy(buttons[i].gameObject);
-            }
+            Button[] buttons = buttonContainer.GetComponentsInChildren<Button>();
+            foreach (var t in buttons)
+                Destroy(t.gameObject);
 
             foreach (var choice in choices)
             {
                 var button = Instantiate(choicePrefab, buttonContainer);
-                button.GetComponentInChildren<Text>().text = ProcessProperties(choice.PortName);
-                button.onClick.AddListener(() => ProceedToNarrative(choice.TargetNodeGUID));
+                button.GetComponentInChildren<Text>().text = ProcessProperties(choice.portName);
+                button.onClick.AddListener(() => ProceedToNarrative(choice.targetNodeGuid));
             }
         }
 
-        private string ProcessProperties(string text)
-        {
-            foreach (var exposedProperty in dialogue.ExposedProperties)
-            {
-                text = text.Replace($"[{exposedProperty.PropertyName}]", exposedProperty.PropertyValue);
-            }
-            return text;
-        }
+        private string ProcessProperties(string text) => dialogue.exposedProperties.Aggregate(text, (current, exposedProperty) => current.Replace($"[{exposedProperty.propertyName}]", exposedProperty.propertyValue));
     }
 }

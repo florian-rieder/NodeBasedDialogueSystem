@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Subtegral.DialogueSystem.DataContainers;
-using UnityEditor;
+using NodeBasedDialogueSystem.com.DialogueSystem.Editor.Nodes;
+using NodeBasedDialogueSystem.com.DialogueSystem.Runtime;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Button = UnityEngine.UIElements.Button;
 
-namespace Subtegral.DialogueSystem.Editor
+namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
 {
     public class StoryGraphView : GraphView
     {
@@ -18,7 +16,7 @@ namespace Subtegral.DialogueSystem.Editor
         public readonly Vector2 DefaultCommentBlockSize = new Vector2(300, 200);
         public DialogueNode EntryPointNode;
         public Blackboard Blackboard = new Blackboard();
-        public List<ExposedProperty> ExposedProperties { get; private set; } = new List<ExposedProperty>();
+        internal List<ExposedProperty> ExposedProperties { get; set; } = new List<ExposedProperty>();
         private NodeSearchWindow _searchWindow;
 
         public StoryGraphView(StoryGraph editorWindow)
@@ -36,7 +34,6 @@ namespace Subtegral.DialogueSystem.Editor
             grid.StretchToParentSize();
 
             AddElement(GetEntryPointNodeInstance());
-
             AddSearchWindow(editorWindow);
         }
 
@@ -58,12 +55,10 @@ namespace Subtegral.DialogueSystem.Editor
 
         public Group CreateCommentBlock(Rect rect, CommentBlockData commentBlockData = null)
         {
-            if(commentBlockData==null)
-                commentBlockData = new CommentBlockData();
-            var group = new Group
-            {
+            commentBlockData ??= new CommentBlockData();
+            var group = new Group {
                 autoUpdateGeometry = true,
-                title = commentBlockData.Title
+                title = commentBlockData.title
             };
             AddElement(group);
             group.SetPosition(rect);
@@ -72,31 +67,28 @@ namespace Subtegral.DialogueSystem.Editor
 
         public void AddPropertyToBlackBoard(ExposedProperty property, bool loadMode = false)
         {
-            var localPropertyName = property.PropertyName;
-            var localPropertyValue = property.PropertyValue;
-            if (!loadMode)
-            {
-                while (ExposedProperties.Any(x => x.PropertyName == localPropertyName))
+            var localPropertyName = property.propertyName;
+            var localPropertyValue = property.propertyValue;
+            if (!loadMode) {
+                while (ExposedProperties.Any(x => x.propertyName == localPropertyName))
                     localPropertyName = $"{localPropertyName}(1)";
             }
 
             var item = ExposedProperty.CreateInstance();
-            item.PropertyName = localPropertyName;
-            item.PropertyValue = localPropertyValue;
+            item.propertyName = localPropertyName;
+            item.propertyValue = localPropertyValue;
             ExposedProperties.Add(item);
 
             var container = new VisualElement();
             var field = new BlackboardField {text = localPropertyName, typeText = "string"};
             container.Add(field);
 
-            var propertyValueTextField = new TextField("Value:")
-            {
+            var propertyValueTextField = new TextField("Value:") {
                 value = localPropertyValue
             };
-            propertyValueTextField.RegisterValueChangedCallback(evt =>
-            {
-                var index = ExposedProperties.FindIndex(x => x.PropertyName == item.PropertyName);
-                ExposedProperties[index].PropertyValue = evt.newValue;
+            propertyValueTextField.RegisterValueChangedCallback(evt => {
+                var index = ExposedProperties.FindIndex(x => x.propertyName == item.propertyName);
+                ExposedProperties[index].propertyValue = evt.newValue;
             });
             var sa = new BlackboardRow(field, propertyValueTextField);
             container.Add(sa);
@@ -108,25 +100,19 @@ namespace Subtegral.DialogueSystem.Editor
             var compatiblePorts = new List<Port>();
             var startPortView = startPort;
 
-            ports.ForEach((port) =>
-            {
-                var portView = port;
-                if (startPortView != portView && startPortView.node != portView.node)
+            ports.ForEach((port) => {
+                if (startPortView != port && startPortView.node != port.node)
                     compatiblePorts.Add(port);
             });
 
             return compatiblePorts;
         }
 
-        public void CreateNewDialogueNode(string nodeName, Vector2 position)
-        {
-            AddElement(CreateNode(nodeName, position));
-        }
+        public void CreateNewDialogueNode(string nodeName, Vector2 position) => AddElement(CreateNode(nodeName, position));
 
         public DialogueNode CreateNode(string nodeName, Vector2 position)
         {
-            var tempDialogueNode = new DialogueNode()
-            {
+            var tempDialogueNode = new DialogueNode() {
                 title = nodeName,
                 DialogueText = nodeName,
                 GUID = Guid.NewGuid().ToString()
@@ -141,16 +127,14 @@ namespace Subtegral.DialogueSystem.Editor
                 DefaultNodeSize)); //To-Do: implement screen center instantiation positioning
 
             var textField = new TextField("");
-            textField.RegisterValueChangedCallback(evt =>
-            {
+            textField.RegisterValueChangedCallback(evt => {
                 tempDialogueNode.DialogueText = evt.newValue;
                 tempDialogueNode.title = evt.newValue;
             });
             textField.SetValueWithoutNotify(tempDialogueNode.title);
             tempDialogueNode.mainContainer.Add(textField);
 
-            var button = new Button(() => { AddChoicePort(tempDialogueNode); })
-            {
+            var button = new Button(() => { AddChoicePort(tempDialogueNode); }) {
                 text = "Add Choice"
             };
             tempDialogueNode.titleButtonContainer.Add(button);
@@ -170,16 +154,14 @@ namespace Subtegral.DialogueSystem.Editor
                 : overriddenPortName;
 
 
-            var textField = new TextField()
-            {
+            var textField = new TextField() {
                 name = string.Empty,
                 value = outputPortName
             };
             textField.RegisterValueChangedCallback(evt => generatedPort.portName = evt.newValue);
             generatedPort.contentContainer.Add(new Label("  "));
             generatedPort.contentContainer.Add(textField);
-            var deleteButton = new Button(() => RemovePort(nodeCache, generatedPort))
-            {
+            var deleteButton = new Button(() => RemovePort(nodeCache, generatedPort)) {
                 text = "X"
             };
             generatedPort.contentContainer.Add(deleteButton);
@@ -189,15 +171,15 @@ namespace Subtegral.DialogueSystem.Editor
             nodeCache.RefreshExpandedState();
         }
 
-        private void RemovePort(Node node, Port socket)
+        void RemovePort(Node node, Port socket)
         {
-            var targetEdge = edges.ToList()
-                .Where(x => x.output.portName == socket.portName && x.output.node == socket.node);
-            if (targetEdge.Any())
-            {
-                var edge = targetEdge.First();
+            IEnumerable<Edge> targetEdge = edges.ToList()
+                                                .Where(x => x.output.portName == socket.portName && x.output.node == socket.node);
+            Edge[] enumerable = targetEdge as Edge[] ?? targetEdge.ToArray();
+            if (enumerable.Any()) {
+                var edge = enumerable.First();
                 edge.input.Disconnect(edge);
-                RemoveElement(targetEdge.First());
+                RemoveElement(enumerable.First());
             }
 
             node.outputContainer.Remove(socket);
@@ -205,20 +187,16 @@ namespace Subtegral.DialogueSystem.Editor
             node.RefreshExpandedState();
         }
 
-        private Port GetPortInstance(DialogueNode node, Direction nodeDirection,
-            Port.Capacity capacity = Port.Capacity.Single)
-        {
-            return node.InstantiatePort(Orientation.Horizontal, nodeDirection, capacity, typeof(float));
-        }
+        static Port GetPortInstance(Node node, Direction nodeDirection,
+                                    Port.Capacity capacity = Port.Capacity.Single) => node.InstantiatePort(Orientation.Horizontal, nodeDirection, capacity, typeof(float));
 
-        private DialogueNode GetEntryPointNodeInstance()
+        static DialogueNode GetEntryPointNodeInstance()
         {
-            var nodeCache = new DialogueNode()
-            {
+            var nodeCache = new DialogueNode() {
                 title = "START",
                 GUID = Guid.NewGuid().ToString(),
                 DialogueText = "ENTRYPOINT",
-                EntyPoint = true
+                EntryPoint = true
             };
 
             var generatedPort = GetPortInstance(nodeCache, Direction.Output);

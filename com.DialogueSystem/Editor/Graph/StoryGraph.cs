@@ -1,22 +1,19 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
+using NodeBasedDialogueSystem.com.DialogueSystem.Runtime;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Subtegral.DialogueSystem.DataContainers;
 
-namespace Subtegral.DialogueSystem.Editor
+namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
 {
     public class StoryGraph : EditorWindow
     {
-        private string _fileName = "New Narrative";
+        string _fileName = "New Narrative";
 
-        private StoryGraphView _graphView;
-        private DialogueContainer _dialogueContainer;
+        StoryGraphView _graphView;
+        DialogueContainer _dialogueContainer;
 
         [MenuItem("Graph/Narrative Graph")]
         public static void CreateGraphViewWindow()
@@ -25,50 +22,42 @@ namespace Subtegral.DialogueSystem.Editor
             window.titleContent = new GUIContent("Narrative Graph");
         }
 
-        private void ConstructGraphView()
+        void ConstructGraphView()
         {
-            _graphView = new StoryGraphView(this)
-            {
+            _graphView = new StoryGraphView(this) {
                 name = "Narrative Graph",
             };
             _graphView.StretchToParentSize();
             rootVisualElement.Add(_graphView);
         }
 
-        private void GenerateToolbar()
-        {
-            var toolbar = new Toolbar();
-
+        void GenerateToolbar() {
+            var toolbar           = new Toolbar();
             var fileNameTextField = new TextField("File Name:");
             fileNameTextField.SetValueWithoutNotify(_fileName);
             fileNameTextField.MarkDirtyRepaint();
             fileNameTextField.RegisterValueChangedCallback(evt => _fileName = evt.newValue);
             toolbar.Add(fileNameTextField);
-
-            toolbar.Add(new Button(() => RequestDataOperation(true)) {text = "Save Data"});
-
+            toolbar.Add(new Button(() => RequestDataOperation(true)) {text  = "Save Data"});
             toolbar.Add(new Button(() => RequestDataOperation(false)) {text = "Load Data"});
             // toolbar.Add(new Button(() => _graphView.CreateNewDialogueNode("Dialogue Node")) {text = "New Node",});
             rootVisualElement.Add(toolbar);
         }
 
-        private void RequestDataOperation(bool save)
-        {
-            if (!string.IsNullOrEmpty(_fileName))
-            {
+        void RequestDataOperation(bool save) {
+            if (!string.IsNullOrEmpty(_fileName)) {
                 var saveUtility = GraphSaveUtility.GetInstance(_graphView);
-                if (save)
+                if (save) {
                     saveUtility.SaveGraph(_fileName);
-                else
+                } else {
                     saveUtility.LoadNarrative(_fileName);
-            }
-            else
-            {
+                }
+            } else {
                 EditorUtility.DisplayDialog("Invalid File name", "Please Enter a valid filename", "OK");
             }
         }
 
-        private void OnEnable()
+        void OnEnable()
         {
             ConstructGraphView();
             GenerateToolbar();
@@ -76,7 +65,7 @@ namespace Subtegral.DialogueSystem.Editor
             GenerateBlackBoard();
         }
 
-        private void GenerateMiniMap()
+        void GenerateMiniMap()
         {
             var miniMap = new MiniMap {anchored = true};
             var cords = _graphView.contentViewContainer.WorldToLocal(new Vector2(this.maxSize.x - 10, 30));
@@ -84,26 +73,23 @@ namespace Subtegral.DialogueSystem.Editor
             _graphView.Add(miniMap);
         }
 
-        private void GenerateBlackBoard()
+        void GenerateBlackBoard()
         {
             var blackboard = new Blackboard(_graphView);
             blackboard.Add(new BlackboardSection {title = "Exposed Variables"});
-            blackboard.addItemRequested = _blackboard =>
-            {
-                _graphView.AddPropertyToBlackBoard(ExposedProperty.CreateInstance(), false);
+            blackboard.addItemRequested = _ => {
+                _graphView.AddPropertyToBlackBoard(ExposedProperty.CreateInstance());
             };
-            blackboard.editTextRequested = (_blackboard, element, newValue) =>
-            {
+            blackboard.editTextRequested = (_, element, newValue) => {
                 var oldPropertyName = ((BlackboardField) element).text;
-                if (_graphView.ExposedProperties.Any(x => x.PropertyName == newValue))
-                {
+                if (_graphView.ExposedProperties.Any(x => x.propertyName == newValue)) {
                     EditorUtility.DisplayDialog("Error", "This property name already exists, please chose another one.",
                         "OK");
                     return;
                 }
 
-                var targetIndex = _graphView.ExposedProperties.FindIndex(x => x.PropertyName == oldPropertyName);
-                _graphView.ExposedProperties[targetIndex].PropertyName = newValue;
+                var targetIndex = _graphView.ExposedProperties.FindIndex(x => x.propertyName == oldPropertyName);
+                _graphView.ExposedProperties[targetIndex].propertyName = newValue;
                 ((BlackboardField) element).text = newValue;
             };
             blackboard.SetPosition(new Rect(10,30,200,300));
@@ -111,9 +97,6 @@ namespace Subtegral.DialogueSystem.Editor
             _graphView.Blackboard = blackboard;
         }
 
-        private void OnDisable()
-        {
-            rootVisualElement.Remove(_graphView);
-        }
+        void OnDisable() => rootVisualElement.Remove(_graphView);
     }
 }
