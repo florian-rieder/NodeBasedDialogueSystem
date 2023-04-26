@@ -1,6 +1,6 @@
 # Node Based Dialogue System for Unity
 
-This is a node-based visual narrative flow creation tool that uses Unity's GraphView API.
+This is Spebby's branch of Mert Kirimgeri's Node-Based visual narrative flow creation tool that uses Unity's GraphView API.
 ![](https://i.ibb.co/JngH8yr/header.png)
 
 ## Features
