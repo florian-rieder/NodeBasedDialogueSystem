@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph;
 using NodeBasedDialogueSystem.com.DialogueSystem.Editor.Nodes;
@@ -26,20 +27,22 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
             _graphView = graphView
         };
 
-        public void SaveGraph(string fileName)
+        public void SaveGraph()
         {
             var dialogueContainerObject = ScriptableObject.CreateInstance<DialogueContainer>();
-            if (!SaveNodes(fileName, dialogueContainerObject)) return;
+            if (!SaveNodes(dialogueContainerObject))
+                return;
             SaveExposedProperties(dialogueContainerObject);
             SaveCommentBlocks(dialogueContainerObject);
+            
+            var filePath = EditorUtility.SaveFilePanelInProject("Save Narrative", "New Narrative", "asset", "Pick a save location");
+            if (string.IsNullOrEmpty(filePath))
+                return;
 
-            if (!AssetDatabase.IsValidFolder("Assets/Resources"))
-                AssetDatabase.CreateFolder("Assets", "Resources");
-
-            var loadedAsset = AssetDatabase.LoadAssetAtPath($"Assets/Resources/{fileName}.asset", typeof(DialogueContainer));
+            var loadedAsset = AssetDatabase.LoadAssetAtPath($"{filePath}", typeof(DialogueContainer));
 
             if (loadedAsset == null || !AssetDatabase.Contains(loadedAsset)) {
-                AssetDatabase.CreateAsset(dialogueContainerObject, $"Assets/Resources/{fileName}.asset");
+                AssetDatabase.CreateAsset(dialogueContainerObject, $"{filePath}");
             } else {
                 var container = loadedAsset as DialogueContainer;
                 if (container != null) {
@@ -52,9 +55,11 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
             }
 
             AssetDatabase.SaveAssets();
+            // open file explorer to the folder where the file is saved
+            EditorUtility.RevealInFinder($"{filePath}");
         }
 
-        bool SaveNodes(string fileName, DialogueContainer dialogueContainerObject)
+        bool SaveNodes(DialogueContainer dialogueContainerObject)
         {
             if (!Edges.Any()) return false;
             Edge[] connectedSockets = Edges.Where(x => x.input.node != null).ToArray();
@@ -102,8 +107,17 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
             }
         }
 
-        public void LoadNarrative(string fileName)
+        public void LoadNarrative(out string fileName)
         {
+            fileName = String.Empty;
+            // open file explorer to get file path
+            var path = EditorUtility.OpenFilePanel("Load Narrative", Application.dataPath + "/Resources", "asset");
+            if (path.Length == 0)
+                return;
+            var startIndex   = path.IndexOf("Resources/", StringComparison.Ordinal) + 10;
+            var endIndex     = path.LastIndexOf(".asset", StringComparison.Ordinal);
+            fileName = path.Substring(startIndex, endIndex - startIndex);
+            
             _dialogueContainer = Resources.Load<DialogueContainer>(fileName);
             if (_dialogueContainer == null) {
                 EditorUtility.DisplayDialog("File Not Found", "Target Narrative Data does not exist!", "OK");

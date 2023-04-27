@@ -10,8 +10,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
 {
     public class StoryGraph : EditorWindow
     {
-        string _fileName = "New Narrative";
-
+        string _fileName;
         StoryGraphView _graphView;
         DialogueContainer _dialogueContainer;
 
@@ -31,29 +30,35 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             rootVisualElement.Add(_graphView);
         }
 
-        void GenerateToolbar() {
+        void RegenerateToolbar()
+        {
+            // remove the old toolbar
+            rootVisualElement.Remove(rootVisualElement.Q<Toolbar>());
+            // generate a new toolbar
+            GenerateToolbar();
+        }
+        
+        void GenerateToolbar() 
+        {
             var toolbar           = new Toolbar();
-            var fileNameTextField = new TextField("File Name:");
-            fileNameTextField.SetValueWithoutNotify(_fileName);
-            fileNameTextField.MarkDirtyRepaint();
-            fileNameTextField.RegisterValueChangedCallback(evt => _fileName = evt.newValue);
-            toolbar.Add(fileNameTextField);
+            // add a label for the file name, non editable
+            // add the save and load buttons
             toolbar.Add(new Button(() => RequestDataOperation(true)) {text  = "Save Data"});
             toolbar.Add(new Button(() => RequestDataOperation(false)) {text = "Load Data"});
+            var fileNameTextField = new Label($"File Name: {_fileName}");
+            toolbar.Add(fileNameTextField);
             // toolbar.Add(new Button(() => _graphView.CreateNewDialogueNode("Dialogue Node")) {text = "New Node",});
             rootVisualElement.Add(toolbar);
         }
 
-        void RequestDataOperation(bool save) {
-            if (!string.IsNullOrEmpty(_fileName)) {
-                var saveUtility = GraphSaveUtility.GetInstance(_graphView);
-                if (save) {
-                    saveUtility.SaveGraph(_fileName);
-                } else {
-                    saveUtility.LoadNarrative(_fileName);
-                }
+        void RequestDataOperation(bool save) 
+        {
+            var saveUtility = GraphSaveUtility.GetInstance(_graphView);
+            if (save) {
+                saveUtility.SaveGraph();
             } else {
-                EditorUtility.DisplayDialog("Invalid File name", "Please Enter a valid filename", "OK");
+                saveUtility.LoadNarrative(out _fileName);
+                RegenerateToolbar();
             }
         }
 
