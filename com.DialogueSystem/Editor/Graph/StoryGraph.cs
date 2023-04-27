@@ -11,6 +11,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
     public class StoryGraph : EditorWindow
     {
         string _fileName;
+        string _filePath;
         StoryGraphView _graphView;
         DialogueContainer _dialogueContainer;
 
@@ -43,22 +44,46 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             var toolbar           = new Toolbar();
             // add a label for the file name, non editable
             // add the save and load buttons
-            toolbar.Add(new Button(() => RequestDataOperation(true)) {text  = "Save Data"});
-            toolbar.Add(new Button(() => RequestDataOperation(false)) {text = "Load Data"});
+            toolbar.Add(new Button(() => RequestDataOperation(0)) {text = "New Data"});
+            toolbar.Add(new Button(() => RequestDataOperation(1)) {text = "Save Data"});
+            toolbar.Add(new Button(() => RequestDataOperation(2)) {text = "Load Data"});
             var fileNameTextField = new Label($"File Name: {_fileName}");
             toolbar.Add(fileNameTextField);
             // toolbar.Add(new Button(() => _graphView.CreateNewDialogueNode("Dialogue Node")) {text = "New Node",});
             rootVisualElement.Add(toolbar);
         }
 
-        void RequestDataOperation(bool save) 
+        void RequestDataOperation(byte option) 
         {
             var saveUtility = GraphSaveUtility.GetInstance(_graphView);
-            if (save) {
-                saveUtility.SaveGraph();
-            } else {
-                saveUtility.LoadNarrative(out _fileName);
-                RegenerateToolbar();
+            switch (option) {
+                case 0: 
+                {
+                    _fileName = string.Empty;
+                    _filePath = string.Empty;
+                    rootVisualElement.Remove(_graphView);
+                    ConstructGraphView();
+                    RegenerateToolbar();
+                    GenerateMiniMap();
+                    GenerateBlackBoard();
+                    break;
+                }
+                case 1: 
+                {
+                    if (_filePath != string.Empty) {
+                        saveUtility.SaveGraph(_filePath);
+                        Debug.Log($"Saved Narrative at: {_filePath}");
+                        break;
+                    }
+                    saveUtility.SaveGraph();
+                    break;
+                }
+                case 2:
+                {
+                    saveUtility.LoadNarrative(out _filePath, out _fileName);
+                    RegenerateToolbar();
+                    break;
+                }
             }
         }
 
