@@ -27,9 +27,11 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
             _graphView = graphView
         };
 
-        public void SaveGraph()
+        public void SaveGraph() => SaveGraph(out _);
+
+        public void SaveGraph(out string filePath)
         {
-            var filePath = EditorUtility.SaveFilePanelInProject("Save Narrative", "New Narrative", "asset", "Pick a save location");
+            filePath = EditorUtility.SaveFilePanelInProject("Save Narrative", "New Narrative", "asset", "Pick a save location");
             if (string.IsNullOrEmpty(filePath))
                 return;
 
@@ -79,12 +81,20 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
                     });
                 }
             }
-
+            
             foreach (var node in Nodes.Where(node => !node.EntryPoint)) {
+                // add every TextField's value to the dialogueText list
+                node.DialogueText.Clear();
+                node.mainContainer.Query<TextField>().ForEach(textField => {
+                    if (textField.value.Length > 0 && textField.name == "textField") {
+                        node.DialogueText.Add(textField.value);
+                    }
+                });
+                
                 dialogueContainerObject.dialogueNodeData.Add(new DialogueNodeData {
-                    nodeGuid = node.GUID,
+                    nodeGuid     = node.GUID,
                     dialogueText = node.DialogueText,
-                    position = node.GetPosition().position
+                    position     = node.GetPosition().position
                 });
             }
 
@@ -152,12 +162,12 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor
         /// </summary>
         void GenerateDialogueNodes()
         {
-            foreach (var perNode in _dialogueContainer.dialogueNodeData) {
-                var tempNode = _graphView.CreateNode(perNode.dialogueText, Vector2.zero);
-                tempNode.GUID = perNode.nodeGuid;
+            foreach (var node in _dialogueContainer.dialogueNodeData) {
+                var tempNode = _graphView.CreateNode(node.dialogueText, Vector2.zero);
+                tempNode.GUID = node.nodeGuid;
                 _graphView.AddElement(tempNode);
 
-                List<NodeLinkData> nodePorts = _dialogueContainer.nodeLinks.Where(x => x.baseNodeGuid == perNode.nodeGuid).ToList();
+                List<NodeLinkData> nodePorts = _dialogueContainer.nodeLinks.Where(x => x.baseNodeGuid == node.nodeGuid).ToList();
                 nodePorts.ForEach(x => _graphView.AddChoicePort(tempNode, x.portName));
             }
         }

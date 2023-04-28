@@ -58,7 +58,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             commentBlockData ??= new CommentBlockData();
             var group = new Group {
                 autoUpdateGeometry = true,
-                title = commentBlockData.title
+                title              = commentBlockData.title
             };
             AddElement(group);
             group.SetPosition(rect);
@@ -67,7 +67,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
 
         public void AddPropertyToBlackBoard(ExposedProperty property, bool loadMode = false)
         {
-            var localPropertyName = property.propertyName;
+            var localPropertyName  = property.propertyName;
             var localPropertyValue = property.propertyValue;
             if (!loadMode) {
                 while (ExposedProperties.Any(x => x.propertyName == localPropertyName))
@@ -75,12 +75,12 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             }
 
             var item = ExposedProperty.CreateInstance();
-            item.propertyName = localPropertyName;
+            item.propertyName  = localPropertyName;
             item.propertyValue = localPropertyValue;
             ExposedProperties.Add(item);
 
             var container = new VisualElement();
-            var field = new BlackboardField {text = localPropertyName, typeText = "string"};
+            var field     = new BlackboardField { text = localPropertyName, typeText = "string" };
             container.Add(field);
 
             var propertyValueTextField = new TextField("Value:") {
@@ -98,7 +98,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
         {
             var compatiblePorts = new List<Port>();
-            var startPortView = startPort;
+            var startPortView   = startPort;
 
             ports.ForEach((port) => {
                 if (startPortView != port && startPortView.node != port.node)
@@ -108,14 +108,14 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             return compatiblePorts;
         }
 
-        public void CreateNewDialogueNode(string nodeName, Vector2 position) => AddElement(CreateNode(nodeName, position));
+        public void CreateNewDialogueNode(List<string> nodeName, Vector2 position) =>
+            AddElement(CreateNode(nodeName, position));
 
-        public DialogueNode CreateNode(string nodeName, Vector2 position)
+        public DialogueNode CreateNode(List<string> dialogue, Vector2 position)
         {
             var tempDialogueNode = new DialogueNode() {
-                title = nodeName,
-                DialogueText = nodeName,
-                GUID = Guid.NewGuid().ToString()
+                GUID = Guid.NewGuid().ToString(),
+                DialogueText = dialogue,
             };
             tempDialogueNode.styleSheets.Add(Resources.Load<StyleSheet>("Node"));
             var inputPort = GetPortInstance(tempDialogueNode, Direction.Input, Port.Capacity.Multi);
@@ -124,25 +124,49 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             tempDialogueNode.RefreshExpandedState();
             tempDialogueNode.RefreshPorts();
             tempDialogueNode.SetPosition(new Rect(position,
-                DefaultNodeSize)); //To-Do: implement screen center instantiation positioning
+                                                  DefaultNodeSize)); //To-Do: implement screen center instantiation positioning
 
-            var textField = new TextField("");
-            textField.RegisterValueChangedCallback(evt => {
-                tempDialogueNode.DialogueText = evt.newValue;
-                tempDialogueNode.title = evt.newValue;
-            });
-            textField.SetValueWithoutNotify(tempDialogueNode.title);
-            tempDialogueNode.mainContainer.Add(textField);
+            var dialogueButton = new Button(() => { AddTextField(tempDialogueNode); }) {
+                text = "Add Dialogue"
+            };
+            tempDialogueNode.titleButtonContainer.Add(dialogueButton);
 
-            var button = new Button(() => { AddChoicePort(tempDialogueNode); }) {
+            if (dialogue.Count > 0) {
+                foreach (var text in dialogue)
+                    AddTextField(tempDialogueNode, text);
+            } else {
+                AddTextField(tempDialogueNode);
+            }
+
+            var choiceButton = new Button(() => { AddChoicePort(tempDialogueNode); }) {
                 text = "Add Choice"
             };
-            tempDialogueNode.titleButtonContainer.Add(button);
+            tempDialogueNode.titleButtonContainer.Add(choiceButton);
             return tempDialogueNode;
         }
 
+        void AddTextField(DialogueNode nodeCache, string text = "text")
+        {
+            var textField = new TextField() {
+                name      = "textField",
+                value     = text,
+                multiline = true,
+                tripleClickSelectsLine = true,
+            };
+            nodeCache.mainContainer.Add(textField);
+            var deleteButton = new Button(() => RemoveTextField(nodeCache, textField)) {
+                text = "X"
+            };
+            textField.Add(deleteButton);
+        }
 
-        public void AddChoicePort(DialogueNode nodeCache, string overriddenPortName = "")
+        void RemoveTextField(DialogueNode nodeCache, TextField textField)
+        {
+            nodeCache.DialogueText.Remove(textField.value);
+            nodeCache.mainContainer.Remove(textField);
+        }
+
+        public void AddChoicePort(Node nodeCache, string overriddenPortName = "")
         {
             var generatedPort = GetPortInstance(nodeCache, Direction.Output);
             var portLabel = generatedPort.contentContainer.Q<Label>("type");
@@ -155,7 +179,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
 
 
             var textField = new TextField() {
-                name = string.Empty,
+                name  = "port",
                 value = outputPortName
             };
             textField.RegisterValueChangedCallback(evt => generatedPort.portName = evt.newValue);
@@ -171,6 +195,9 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             nodeCache.RefreshExpandedState();
         }
 
+        /// <summary> Removes a port from a node.</summary>
+        /// <param name="node">The node to remove the port from.</param>
+        /// <param name="socket">The port to remove.</param>
         void RemovePort(Node node, Port socket)
         {
             IEnumerable<Edge> targetEdge = edges.ToList()
@@ -187,15 +214,22 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             node.RefreshExpandedState();
         }
 
+        /// <summary> Creates a new port instance for a given node.</summary>
+        /// <param name="node">The node to create the port for.</param>
+        /// <param name="nodeDirection">The direction of the port.</param>
+        /// <param name="capacity">The capacity of the port.</param>
+        /// <returns>The port instance.</returns>
         static Port GetPortInstance(Node node, Direction nodeDirection,
                                     Port.Capacity capacity = Port.Capacity.Single) => node.InstantiatePort(Orientation.Horizontal, nodeDirection, capacity, typeof(float));
-
+    
+        /// <summary>Creates a new entry point node</summary>
+        /// <returns>The created node.</returns>
         static DialogueNode GetEntryPointNodeInstance()
         {
             var nodeCache = new DialogueNode() {
                 title = "START",
                 GUID = Guid.NewGuid().ToString(),
-                DialogueText = "ENTRYPOINT",
+                DialogueText = new List<string> {"ENTRYPOINT"},
                 EntryPoint = true
             };
 
