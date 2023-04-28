@@ -52,7 +52,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             switch (searchTreeEntry.userData)
             {
                 case DialogueNode dialogueNode:
-                    _graphView.CreateNewDialogueNode(new List<string> { "Dialogue Node" }, graphMousePosition);
+                    _graphView.CreateNewDialogueNode(new List<string> {}, graphMousePosition);
                     return true;
                 case Group group:
                     var rect = new Rect(graphMousePosition, _graphView.DefaultCommentBlockSize);

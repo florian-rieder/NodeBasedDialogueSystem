@@ -145,7 +145,7 @@ namespace NodeBasedDialogueSystem.com.DialogueSystem.Editor.Graph
             return tempDialogueNode;
         }
 
-        void AddTextField(DialogueNode nodeCache, string text = "text")
+        void AddTextField(DialogueNode nodeCache, string text = "New Text")
         {
             var textField = new TextField() {
                 name      = "textField",
